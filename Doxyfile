@@ -19,8 +19,8 @@ FULL_PATH_NAMES = NO
 MARKDOWN_SUPPORT = YES
 
 INPUT = C:/code/server/src C:/code/server/include
-EXCLUDE*PATTERNS = docs/* public/_ .git/_
-FILE*PATTERNS = *.c _.h _.md
+EXCLUDE_PATTERNS = docs/* public/* .git/*
+FILE_PATTERNS = *.c *.h *.md
 RECURSIVE = YES
 SOURCE_BROWSER = YES
 INLINE_SOURCES = NO

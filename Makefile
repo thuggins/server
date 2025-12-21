@@ -18,14 +18,21 @@ clean:
 	rm -f $(TARGET) $(OBJS)
 
 .PHONY: docs clean-docs
+
 DOCS_DIR = docs
 DOXYFILE = Doxyfile
+# Detect platform-specific null device
+ifeq ($(OS),Windows_NT)
+	NULLDEV = nul
+else
+	NULLDEV = /dev/null
+endif
 
 docs:
-	@where doxygen >nul 2>nul || ( \
-	  echo Error: doxygen not found. Install it and re-run 'make docs'. && \
-	  echo Options: Winget 'winget search doxygen' then 'winget install <Id>', Scoop 'scoop install doxygen', or download from https://www.doxygen.nl/download.html && \
-	  exit 127 )
+	@where doxygen >$(NULLDEV) 2>$(NULLDEV) || ( \
+	echo Error: doxygen not found. Install it and re-run 'make docs'. && \
+	echo Options: Winget 'winget search doxygen' then 'winget install <Id>', Scoop 'scoop install doxygen', or download from https://www.doxygen.nl/download.html && \
+	exit 127 )
 	doxygen $(DOXYFILE)
 
 clean-docs:

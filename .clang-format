@@ -1,15 +1,15 @@
-BasedOnStyle: LLVM         # Or Google, WebKit, etc. as a base
-IndentWidth: 4             # Spaces per indent level
+BasedOnStyle: LLVM # Or Google, WebKit, etc. as a base
+IndentWidth: 4 # Spaces per indent level
 TabWidth: 4
-UseTab: Never              # Or ForIndentation, Always, etc.
-ColumnLimit: 100           # Max line length
-BreakBeforeBraces: Attach  # Attach, Allman, Stroustrup, Linux, etc.
+UseTab: Never # Or ForIndentation, Always, etc.
+ColumnLimit: 100 # Max line length
+BreakBeforeBraces: Attach # Attach, Allman, Stroustrup, Linux, etc.
 AllowShortFunctionsOnASingleLine: Empty
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 SortIncludes: false
 SpaceBeforeParens: ControlStatements
-PointerAlignment: Left     # Or Right, Middle
+PointerAlignment: Left # Or Right, Middle
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SpaceAfterCStyleCast: false
