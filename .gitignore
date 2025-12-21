@@ -18,8 +18,8 @@ docs/
 # IDE and editor files
 .vs/
 *.swp
-*.swo
-*~
+*.sdwoos
+ *~
 .idea/
 nul
 
