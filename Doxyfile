@@ -1,0 +1,31 @@
+# Doxygen configuration for the C WebSocket server
+
+PROJECT_NAME = "C WebSocket Server"
+OUTPUT_DIRECTORY = docs
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+QUIET = YES
+JAVADOC_AUTOBRIEF = YES
+EXTRACT_ALL = YES
+WARN_IF_UNDOCUMENTED = NO
+FULL_PATH_NAMES = NO
+
+# Main page: default (show project index with Files/Classes)
+
+# USE_MDFILE_AS_MAINPAGE is disabled to emphasize file-based docs
+
+# USE_MDFILE_AS_MAINPAGE =
+
+MARKDOWN_SUPPORT = YES
+
+INPUT = C:/code/server/src C:/code/server/include
+EXCLUDE*PATTERNS = docs/* public/_ .git/_
+FILE*PATTERNS = *.c _.h _.md
+RECURSIVE = YES
+SOURCE_BROWSER = YES
+INLINE_SOURCES = NO
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION = NO
+GENERATE_TREEVIEW = YES
+OPTIMIZE_OUTPUT_FOR_C = YES
+SHOW_FILES = YES

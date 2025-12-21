@@ -1,6 +1,14 @@
 {
     "editor.formatOnSave": true,
     "[c]": {
-        "editor.defaultFormatter": "ms-vscode.cpptools"
-    }
+        "editor.defaultFormatter": "xaver.clang-format",
+    },
+    "terminal.integrated.profiles.windows": {
+        "MSYS2 UCRT": {
+            "path": "C:\\msys64\\usr\\bin\\bash.exe",
+            "args": ["-l"],
+            "icon": "terminal-bash"
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT"
 }

@@ -26,10 +26,29 @@ After building, run the server with:
 ./server.exe
 ```
 
-## Files
+- Open http://localhost:8080/ to load the demo UI.
+- The server serves static files from `public/` and upgrades WebSocket requests on `/ws`.
+- The demo client in `public/app.js` connects to `ws://localhost:8080/ws` and echoes messages.
 
-- `server.c` - Main server source code
-- `Makefile` - Build configuration
+## Features
+
+- Minimal HTTP static file server (HTML, JS, CSS)
+- RFC 6455 WebSocket handshake with basic text and ping/pong support
+- Per-connection worker threads to avoid blocking on persistent sockets
+
+## Documentation
+
+This project includes Doxygen annotations. The generated HTML docs use `README.md` as the main page.
+
+Generate docs from the terminal:
+
+```bash
+make docs
+```
+
+Open the documentation at:
+
+- [docs/html/index.html](docs/html/index.html)
 
 ## Requirements
 

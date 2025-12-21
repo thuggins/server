@@ -1,15 +1,1 @@
-# Auto detect text files and normalize line endings to LF
-* text=auto
-
-# C source files
-*.c text eol=lf
-*.h text eol=lf
-
-# Build files
-Makefile text eol=lf
-*.json text eol=lf
-*.md text eol=lf
-
-# Keep binary files untouched
-*.exe binary
-*.o binary
+* text=auto eol=lf

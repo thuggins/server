@@ -1,12 +1,32 @@
 CC = gcc
-CFLAGS = -g
-LDFLAGS = -lws2_32
+CFLAGS = -g -Iinclude
+LDFLAGS = -lws2_32 -ladvapi32
 TARGET = server.exe
+SRCS = src/main.c src/ws.c src/http.c src/worker.c
+OBJS = $(SRCS:.c=.o)
 
-all: $(TARGET)
 
-$(TARGET): server.c
-	$(CC) $(CFLAGS) server.c -o $(TARGET) $(LDFLAGS)
+all: clean-docs docs $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJS)
+
+.PHONY: docs clean-docs
+DOCS_DIR = docs
+DOXYFILE = Doxyfile
+
+docs:
+	@where doxygen >nul 2>nul || ( \
+	  echo Error: doxygen not found. Install it and re-run 'make docs'. && \
+	  echo Options: Winget 'winget search doxygen' then 'winget install <Id>', Scoop 'scoop install doxygen', or download from https://www.doxygen.nl/download.html && \
+	  exit 127 )
+	doxygen $(DOXYFILE)
+
+clean-docs:
+	rm -rf $(DOCS_DIR)/html $(DOCS_DIR)/latex
