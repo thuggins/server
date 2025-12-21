@@ -1,19 +1,9 @@
-/**
-@file main.c
-@brief Demo HTTP + WebSocket server entry point (Windows).
 
-Provides:
-- Accept loop on TCP port 8080
-- Serves static files from ./public
-- Upgrades /ws requests to WebSocket and echoes text
-Modules: ws (RFC 6455), http (static files), worker (per-connection thread)
-*/
 #include <stdio.h>
 #include <string.h>
 #include <process.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
 #include "ws.h"
 #include "http.h"
 #include "worker.h"
@@ -21,12 +11,7 @@ Modules: ws (RFC 6455), http (static files), worker (per-connection thread)
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-/**
-@brief Initialize Winsock, start listening on port 8080,
-and dispatch each accepted connection to a worker thread.
-@return Process exit code (0 on normal termination).
-*/
-
+// Entry point: initialize Winsock, OpenSSL, and start accept loop on port 8443 (HTTPS/WSS only)
 int main() {
     // Initialize Winsock
     WSADATA wsaData;
@@ -81,7 +66,6 @@ int main() {
         if (client != INVALID_SOCKET) {
             char ipbuf[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &clientAddr.sin_addr, ipbuf, sizeof(ipbuf));
-            printf("[HTTPS] Connection from %s:%d\n", ipbuf, ntohs(clientAddr.sin_port));
             client_ctx_t* ctx = (client_ctx_t*)malloc(sizeof(client_ctx_t));
             if (!ctx) {
                 closesocket(client);
@@ -89,7 +73,7 @@ int main() {
             }
             ctx->client = client;
             ctx->addr = clientAddr;
-            ctx->ssl_ctx = ssl_ctx; // Use SSL_CTX for HTTPS/WSS
+            ctx->ssl_ctx = ssl_ctx;
             uintptr_t th = _beginthreadex(NULL, 0, client_worker, ctx, 0, NULL);
             if (th)
                 CloseHandle((HANDLE)th);

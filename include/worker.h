@@ -1,23 +1,17 @@
-/**
-@file worker.h
-@brief Public API for per-connection worker thread and context.
 
-Provides:
-- Context type for client sockets
-- Thread proc to handle HTTP/WebSocket per connection
-*/
-#pragma once
+#ifndef WORKER_H
+#define WORKER_H
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-/**
-@brief Per-connection context passed to the worker thread.
-*/
 typedef struct {
     SOCKET client;
     struct sockaddr_in addr;
     void* ssl_ctx; // SSL_CTX* for SSL support, NULL for plain
 } client_ctx_t;
+
+#endif // WORKER_H
 
 /**
 @brief Thread proc that handles a single client connection and closes the socket.

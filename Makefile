@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Iinclude
 LDFLAGS = -lws2_32 -ladvapi32 -lssl -lcrypto
 TARGET = server.exe
-SRCS = src/main.c src/ws.c src/http.c src/worker.c src/ssl_helper.c
+SRCS = src/main.c src/ws.c src/http.c src/worker.c src/ssl_helper.c src/http_client_openssl.c src/weather.c src/ws_util.c
 OBJS = $(SRCS:.c=.o)
 
 all: clean $(TARGET)

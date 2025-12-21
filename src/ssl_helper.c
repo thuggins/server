@@ -1,6 +1,7 @@
 #include "ssl_helper.h"
 #include <stdio.h>
 
+// Create and return a new SSL_CTX using the given cert and key files.
 SSL_CTX* create_ssl_ctx(const char* cert_file, const char* key_file) {
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx) {

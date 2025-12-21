@@ -1,14 +1,3 @@
-/**
-@file worker.c
-@brief Per-connection handler thread for HTTP/WebSocket.
-
-Provides:
-- Reads first request per connection
-- WebSocket echo loop (text, ping/pong)
-- Static file serving with connection-close semantics
-@note Closes client socket when done.
-*/
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,15 +5,14 @@ Provides:
 #include <ws2tcpip.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-
+#include <time.h>
+#include <unistd.h>
+#include "weather.h"
 #include "ws.h"
 #include "http.h"
 #include "worker.h"
 
-/**
-@brief Thread proc for a single client connection (HTTP/WebSocket).
-@note Closes the client socket before returning.
-*/
+// Thread proc for a single client connection (HTTP/WebSocket).
 unsigned __stdcall client_worker(void* arg) {
     client_ctx_t* ctx = (client_ctx_t*)arg;
     SOCKET client = ctx->client;
@@ -36,7 +24,6 @@ unsigned __stdcall client_worker(void* arg) {
         strcpy(clientIP, "unknown");
     }
 
-    // Only SSL connections are supported
     SSL* ssl = SSL_new((SSL_CTX*)ctx->ssl_ctx);
     if (!ssl) {
         closesocket(client);
@@ -56,66 +43,46 @@ unsigned __stdcall client_worker(void* arg) {
         return 0;
     }
 
-    // Extract request line (for logging)
-    char requestLine[256] = {0};
-    char* line_end = strstr(request, "\r\n");
-    if (line_end) {
-        int len = (int)(line_end - request);
-        if (len > 255)
-            len = 255;
-        strncpy(requestLine, request, len);
-    }
-
     // WebSocket upgrade vs static file
     if (strstr(request, "Upgrade: websocket") != NULL ||
         strstr(request, "upgrade: websocket") != NULL) {
         if (websocket_handshake_ssl(ssl, request)) {
-            // Send Home HTML page on initial connection
-            websocket_send_text_ssl(ssl, "<h2>Home</h2><p>Welcome to the Home page!</p>");
             char msg[1024];
             int mlen;
+            int weather_in_progress = 0;
             while ((mlen = websocket_read_text_ssl(ssl, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
                 if (mlen == -2)
-                    continue; // control frame handled
-
-                // Try to parse as JSON for page requests
-                if (msg[0] == '{') {
-                    char page[32] = {0};
-                    const char* ptype = strstr(msg, "\"type\"");
-                    const char* ppage = strstr(msg, "\"page\"");
-                    if (ptype && strstr(ptype, "page")) {
-                        if (ppage) {
-                            const char* colon = strchr(ppage, ':');
-                            if (colon) {
-                                const char* quote1 = strchr(colon, '"');
-                                if (quote1) {
-                                    const char* quote2 = strchr(quote1 + 1, '"');
-                                    if (quote2 && quote2 - quote1 - 1 < (int)sizeof(page)) {
-                                        strncpy(page, quote1 + 1, quote2 - quote1 - 1);
-                                        page[quote2 - quote1 - 1] = 0;
-                                    }
-                                }
-                            }
-                        }
-                        // Send HTML for the requested page
-                        const char* html = NULL;
-                        if (strcmp(page, "home") == 0) {
-                            html = "<h2>Home</h2><p>Welcome to the Home page!</p>";
-                        } else if (strcmp(page, "about") == 0) {
-                            html = "<h2>About</h2><p>This is a demo WebSocket-driven site. Powered "
-                                   "by C!</p>";
-                        } else if (strcmp(page, "contact") == 0) {
-                            html = "<h2>Contact</h2><p>Contact us at <a "
-                                   "href='mailto:demo@example.com'>demo@example.com</a></p>";
-                        } else {
-                            html = "<h2>Not Found</h2><p>Page not found.</p>";
-                        }
-                        websocket_send_text_ssl(ssl, html);
-                        continue;
+                    continue;
+                if (strncmp(msg, "{\"type\":\"weather_request\"", 25) == 0 &&
+                    !weather_in_progress) {
+                    weather_in_progress = 1;
+                    // Prepare 10 capitals
+                    Location capitals[10] = {{"Montgomery", "AL", 32.3777, -86.3000},
+                                             {"Juneau", "AK", 58.3019, -134.4197},
+                                             {"Phoenix", "AZ", 33.4484, -112.0740},
+                                             {"Little Rock", "AR", 34.7465, -92.2896},
+                                             {"Sacramento", "CA", 38.5816, -121.4944},
+                                             {"Denver", "CO", 39.7392, -104.9903},
+                                             {"Hartford", "CT", 41.7658, -72.6734},
+                                             {"Dover", "DE", 39.1582, -75.5244},
+                                             {"Tallahassee", "FL", 30.4383, -84.2807},
+                                             {"Atlanta", "GA", 33.7490, -84.3880}};
+                    for (int i = 0; i < 10; ++i) {
+                        char tempval[16];
+                        get_weather_for_location(capitals[i].city, capitals[i].state,
+                                                 capitals[i].latitude, capitals[i].longitude,
+                                                 tempval, sizeof(tempval));
+                        char msg[256];
+                        snprintf(msg, sizeof(msg),
+                                 "{\"type\":\"weather_row\",\"city\":\"%s\",\"state\":\"%s\","
+                                 "\"temp\":\"%s\"}",
+                                 capitals[i].city, capitals[i].state, tempval);
+                        int wsret = websocket_send_text_ssl(ssl, msg);
+                        if (wsret < 0)
+                            break;
                     }
+                    weather_in_progress = 0;
                 }
-                // Fallback: ignore or send a default page
-                // websocket_send_text_ssl(ssl, "<h2>Unknown request</h2>");
             }
         }
         SSL_free(ssl);
