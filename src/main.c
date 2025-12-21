@@ -4,15 +4,21 @@
 #include <process.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include "ws.h"
 #include "http.h"
 #include "worker.h"
 #include "ssl_helper.h"
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include "weather.h"
+
+// Track worker thread handles
+#define MAX_THREADS 1024
 
 // Entry point: initialize Winsock, OpenSSL, and start accept loop on port 8443 (HTTPS/WSS only)
 int main() {
+    weather_curl_init();
+
     // Initialize Winsock
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -58,8 +64,10 @@ int main() {
     printf("Server running on https://localhost:8443\n");
     printf("Press Ctrl+C to stop.\n");
 
-    // Accept loop: spawn worker per connection (HTTPS/WSS only)
-    while (1) {
+    HANDLE thread_handles[MAX_THREADS];
+    int thread_count = 0;
+    int running = 1;
+    while (running) {
         struct sockaddr_in clientAddr;
         int clientLen = sizeof(clientAddr);
         SOCKET client = accept(sock_ssl, (struct sockaddr*)&clientAddr, &clientLen);
@@ -75,15 +83,31 @@ int main() {
             ctx->addr = clientAddr;
             ctx->ssl_ctx = ssl_ctx;
             uintptr_t th = _beginthreadex(NULL, 0, client_worker, ctx, 0, NULL);
-            if (th)
-                CloseHandle((HANDLE)th);
-            else
+            if (th) {
+                if (thread_count < MAX_THREADS) {
+                    thread_handles[thread_count++] = (HANDLE)th;
+                } else {
+                    CloseHandle((HANDLE)th);
+                }
+            } else {
                 client_worker(ctx);
+            }
         }
     }
 
     closesocket(sock_ssl);
+
+    // Wait for all worker threads to finish
+    if (thread_count > 0) {
+        WaitForMultipleObjects(thread_count, thread_handles, TRUE, INFINITE);
+        for (int i = 0; i < thread_count; ++i) {
+            CloseHandle(thread_handles[i]);
+        }
+    }
+
     SSL_CTX_free(ssl_ctx);
+
+    weather_curl_cleanup();
     WSACleanup();
     return 0;
 }

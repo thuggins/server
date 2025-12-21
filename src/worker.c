@@ -17,11 +17,16 @@ unsigned __stdcall client_worker(void* arg) {
     client_ctx_t* ctx = (client_ctx_t*)arg;
     SOCKET client = ctx->client;
     struct sockaddr_in clientAddr = ctx->addr;
-    free(ctx);
 
     char clientIP[INET_ADDRSTRLEN];
     if (!inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN)) {
         strcpy(clientIP, "unknown");
+    }
+
+    if (!ctx || !ctx->ssl_ctx) {
+        fprintf(stderr, "ERROR: ctx or ctx->ssl_ctx is NULL!\n");
+        closesocket(client);
+        return 0;
     }
 
     SSL* ssl = SSL_new((SSL_CTX*)ctx->ssl_ctx);
@@ -96,5 +101,6 @@ unsigned __stdcall client_worker(void* arg) {
         SSL_free(ssl);
         closesocket(client);
     }
+    free(ctx);
     return 0;
 }

@@ -9,6 +9,12 @@ typedef struct {
     double longitude;
 } Location;
 
+// Call at program start to initialize libcurl for weather
+void weather_curl_init();
+
+// Call at program exit to clean up libcurl for weather
+void weather_curl_cleanup();
+
 // Fetches weather for a location and writes temperature as string to tempval.
 // Returns 1 on success, 0 on error.
 // city and state are for display only; latitude and longitude are used for the API request.

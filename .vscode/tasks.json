@@ -2,13 +2,29 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "build",
+			"type": "process",
+			"command": "C:\\msys64\\usr\\bin\\make.exe",
+			"group": "build",
+			"problemMatcher": ["$gcc"],
+			"options": {
+				"cwd": "${workspaceFolder}",
+				"env": {
+					"PATH": "C:\\msys64\\ucrt64\\bin;${env:PATH}"
+				}
+			}
+		},
+		{
 			"label": "Build and Run Server",
 			"type": "shell",
 			"command": "make clean && make && server.exe",
 			"args": [],
 			"isBackground": false,
 			"problemMatcher": [],
-			"group": "build"
+			"group": "none",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
 		}
 	]
 }

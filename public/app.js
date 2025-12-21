@@ -14,7 +14,7 @@
     </div>
     <div id="weather" style="max-width:500px;"></div>
   `;
-  // Removed log area and heading for a cleaner UI
+
   const log = null;
   const weatherBtn = document.getElementById('weatherBtn');
   const weatherDiv = document.getElementById('weather');
@@ -22,8 +22,6 @@
   let reconnectTimer = null;
   let reconnectDelay = 2000;
   let isReconnecting = false;
-
-  // Removed appendLog and log logic
 
   function setWeatherLoading(loading) {
     if (weatherBtn) weatherBtn.disabled = loading;
@@ -117,14 +115,6 @@
               weatherDiv.innerHTML = '<div style="padding:1em;text-align:center;color:#888;">Loading weather...</div>';
             }
             ws.send(JSON.stringify({ type: 'weather_request' }));
-        }
-      };
-    }
-    if (weatherBtn) {
-      weatherBtn.onclick = () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          setWeatherLoading(true);
-          ws.send(JSON.stringify({ type: 'weather_request' }));
         }
       };
     }

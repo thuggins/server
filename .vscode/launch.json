@@ -9,7 +9,9 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                { "name": "PATH", "value": "C:\\msys64\\ucrt64\\bin;${env:PATH}" }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "gdb",
@@ -20,7 +22,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "make",
+            "preLaunchTask": "build",
             "internalConsoleOptions": "openOnSessionStart"
         }
     ]
