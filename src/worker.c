@@ -8,11 +8,14 @@ Provides:
 - Static file serving with connection-close semantics
 @note Closes client socket when done.
 */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "ws.h"
 #include "http.h"
@@ -33,10 +36,22 @@ unsigned __stdcall client_worker(void* arg) {
         strcpy(clientIP, "unknown");
     }
 
-    // Receive initial HTTP request (we only handle the first request per connection)
+    // Only SSL connections are supported
+    SSL* ssl = SSL_new((SSL_CTX*)ctx->ssl_ctx);
+    if (!ssl) {
+        closesocket(client);
+        return 0;
+    }
+    SSL_set_fd(ssl, (int)client);
+    if (SSL_accept(ssl) <= 0) {
+        SSL_free(ssl);
+        closesocket(client);
+        return 0;
+    }
     char request[2048] = {0};
-    int recvBytes = recv(client, request, sizeof(request) - 1, 0);
+    int recvBytes = SSL_read(ssl, request, sizeof(request) - 1);
     if (recvBytes <= 0) {
+        SSL_free(ssl);
         closesocket(client);
         return 0;
     }
@@ -51,15 +66,15 @@ unsigned __stdcall client_worker(void* arg) {
         strncpy(requestLine, request, len);
     }
 
-    // WebSocket upgrade vs normal HTTP
+    // WebSocket upgrade vs static file
     if (strstr(request, "Upgrade: websocket") != NULL ||
         strstr(request, "upgrade: websocket") != NULL) {
-        if (websocket_handshake(client, request)) {
+        if (websocket_handshake_ssl(ssl, request)) {
             // Send Home HTML page on initial connection
-            websocket_send_text(client, "<h2>Home</h2><p>Welcome to the Home page!</p>");
+            websocket_send_text_ssl(ssl, "<h2>Home</h2><p>Welcome to the Home page!</p>");
             char msg[1024];
             int mlen;
-            while ((mlen = websocket_read_text(client, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
+            while ((mlen = websocket_read_text_ssl(ssl, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
                 if (mlen == -2)
                     continue; // control frame handled
 
@@ -95,23 +110,23 @@ unsigned __stdcall client_worker(void* arg) {
                         } else {
                             html = "<h2>Not Found</h2><p>Page not found.</p>";
                         }
-                        websocket_send_text(client, html);
+                        websocket_send_text_ssl(ssl, html);
                         continue;
                     }
                 }
                 // Fallback: ignore or send a default page
-                // websocket_send_text(client, "<h2>Unknown request</h2>");
+                // websocket_send_text_ssl(ssl, "<h2>Unknown request</h2>");
             }
         }
+        SSL_free(ssl);
         closesocket(client);
     } else {
         // Serve static file based on the requested path
         char method[8] = {0};
         char path[256] = {0};
         sscanf(request, "%7s %255s", method, path);
-        http_serve_file(client, path);
-        if (requestLine[0])
-            printf("[%s] %s - 200 OK\n", clientIP, requestLine);
+        http_serve_file_ssl(ssl, path);
+        SSL_free(ssl);
         closesocket(client);
     }
     return 0;

@@ -16,6 +16,7 @@ Provides:
 typedef struct {
     SOCKET client;
     struct sockaddr_in addr;
+    void* ssl_ctx; // SSL_CTX* for SSL support, NULL for plain
 } client_ctx_t;
 
 /**

@@ -28,11 +28,12 @@
       ws = null;
     }
     console.log('Attempting to connect WebSocket...');
-    ws = new WebSocket('ws://localhost:8080/ws');
+    const wsProto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const wsPort = window.location.protocol === 'https:' ? '8443' : '8080';
+    ws = new WebSocket(wsProto + 'localhost:' + wsPort + '/ws');
     ws.addEventListener('open', () => {
       console.log('WebSocket connected');
       main.innerHTML = '<p style="color:green">Connected to server</p>';
-      // Request the current page after reconnect
       if (currentPage) {
         ws.send(JSON.stringify({ type: 'page', page: currentPage }));
       }

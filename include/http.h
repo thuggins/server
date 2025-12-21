@@ -16,12 +16,14 @@ Serves responses from the `public/` directory.
 */
 void http_send_response(SOCKET client, const char* content_type, const unsigned char* data,
                         size_t len);
+void http_send_response_ssl(void* ssl, const char* content_type, const unsigned char* data, size_t len);
 
 /**
 @brief Send a simple 404 Not Found HTML response.
 @param client Connected client socket.
 */
 void http_send_404(SOCKET client);
+void http_send_404_ssl(void* ssl);
 
 /**
 @brief Serve a file by HTTP path from `public/`.
@@ -29,3 +31,4 @@ void http_send_404(SOCKET client);
 @param path HTTP path (e.g., "/", "/app.js").
 */
 void http_serve_file(SOCKET client, const char* path);
+void http_serve_file_ssl(void* ssl, const char* path);

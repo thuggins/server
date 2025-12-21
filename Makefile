@@ -1,8 +1,9 @@
 CC = gcc
 CFLAGS = -g -Iinclude
-LDFLAGS = -lws2_32 -ladvapi32
+# Add OpenSSL include path if needed (MSYS2/MinGW usually finds it automatically)
+LDFLAGS = -lws2_32 -ladvapi32 -lssl -lcrypto
 TARGET = server.exe
-SRCS = src/main.c src/ws.c src/http.c src/worker.c
+SRCS = src/main.c src/ws.c src/http.c src/worker.c src/ssl_helper.c
 OBJS = $(SRCS:.c=.o)
 
 

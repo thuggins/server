@@ -1,3 +1,7 @@
+#include <openssl/ssl.h>
+int websocket_handshake_ssl(SSL* ssl, const char* request);
+int websocket_send_text_ssl(SSL* ssl, const char* msg);
+int websocket_read_text_ssl(SSL* ssl, char* out, int out_size);
 /**
 @file ws.h
 @brief Public API for WebSocket utilities (RFC 6455).

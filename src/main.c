@@ -17,12 +17,16 @@ Modules: ws (RFC 6455), http (static files), worker (per-connection thread)
 #include "ws.h"
 #include "http.h"
 #include "worker.h"
+#include "ssl_helper.h"
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 /**
 @brief Initialize Winsock, start listening on port 8080,
 and dispatch each accepted connection to a worker thread.
 @return Process exit code (0 on normal termination).
 */
+
 int main() {
     // Initialize Winsock
     WSADATA wsaData;
@@ -31,62 +35,71 @@ int main() {
         return 1;
     }
 
-    // Create TCP socket
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET) {
-        printf("Socket creation failed\n");
+    // Initialize OpenSSL
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+
+    // Create SSL_CTX for HTTPS/WSS
+    SSL_CTX* ssl_ctx = create_ssl_ctx("localhost-cert.pem", "localhost-key.pem");
+    if (!ssl_ctx) {
+        printf("Failed to create SSL_CTX.\n");
         WSACleanup();
         return 1;
     }
 
-    // Enable address reuse
+    // Create TCP socket for HTTPS/WSS only
+    SOCKET sock_ssl = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock_ssl == INVALID_SOCKET) {
+        printf("SSL socket creation failed\n");
+        SSL_CTX_free(ssl_ctx);
+        WSACleanup();
+        return 1;
+    }
     int reuse = 1;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse, sizeof(reuse));
-
-    // Bind to 0.0.0.0:8080
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(8080);
-
-    if (bind(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        printf("Bind failed\n");
-        closesocket(sock);
+    setsockopt(sock_ssl, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse, sizeof(reuse));
+    struct sockaddr_in serverAddrSSL;
+    serverAddrSSL.sin_family = AF_INET;
+    serverAddrSSL.sin_addr.s_addr = INADDR_ANY;
+    serverAddrSSL.sin_port = htons(8443);
+    if (bind(sock_ssl, (struct sockaddr*)&serverAddrSSL, sizeof(serverAddrSSL)) == SOCKET_ERROR) {
+        printf("SSL Bind failed\n");
+        closesocket(sock_ssl);
+        SSL_CTX_free(ssl_ctx);
         WSACleanup();
         return 1;
     }
-
-    // Listen
-    listen(sock, 16);
-    printf("Server running on http://localhost:8080\n");
+    listen(sock_ssl, 16);
+    printf("Server running on https://localhost:8443\n");
     printf("Press Ctrl+C to stop.\n");
 
-    // Accept loop: spawn worker per connection
+    // Accept loop: spawn worker per connection (HTTPS/WSS only)
     while (1) {
         struct sockaddr_in clientAddr;
         int clientLen = sizeof(clientAddr);
-        SOCKET client = accept(sock, (struct sockaddr*)&clientAddr, &clientLen);
-        if (client == INVALID_SOCKET)
-            continue;
-
-        client_ctx_t* ctx = (client_ctx_t*)malloc(sizeof(client_ctx_t));
-        if (!ctx) {
-            closesocket(client);
-            continue;
-        }
-        ctx->client = client;
-        ctx->addr = clientAddr;
-
-        uintptr_t th = _beginthreadex(NULL, 0, client_worker, ctx, 0, NULL);
-        if (th) {
-            CloseHandle((HANDLE)th);
-        } else {
-            // If we fail to create a thread, handle synchronously
-            client_worker(ctx);
+        SOCKET client = accept(sock_ssl, (struct sockaddr*)&clientAddr, &clientLen);
+        if (client != INVALID_SOCKET) {
+            char ipbuf[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &clientAddr.sin_addr, ipbuf, sizeof(ipbuf));
+            printf("[HTTPS] Connection from %s:%d\n", ipbuf, ntohs(clientAddr.sin_port));
+            client_ctx_t* ctx = (client_ctx_t*)malloc(sizeof(client_ctx_t));
+            if (!ctx) {
+                closesocket(client);
+                continue;
+            }
+            ctx->client = client;
+            ctx->addr = clientAddr;
+            ctx->ssl_ctx = ssl_ctx; // Use SSL_CTX for HTTPS/WSS
+            uintptr_t th = _beginthreadex(NULL, 0, client_worker, ctx, 0, NULL);
+            if (th)
+                CloseHandle((HANDLE)th);
+            else
+                client_worker(ctx);
         }
     }
 
-    closesocket(sock);
+    closesocket(sock_ssl);
+    SSL_CTX_free(ssl_ctx);
     WSACleanup();
     return 0;
 }

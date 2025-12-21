@@ -36,6 +36,29 @@ After building, run the server with:
 - RFC 6455 WebSocket handshake with basic text and ping/pong support
 - Per-connection worker threads to avoid blocking on persistent sockets
 
+## Local Development SSL Certificate
+
+This project uses a self-signed certificate for HTTPS/WSS on localhost.
+
+**Do not commit your private key or .pfx files to version control.**
+
+To generate your own local certificate and key (Windows PowerShell):
+
+```powershell
+# Generate a self-signed cert for localhost
+New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "cert:\LocalMachine\My" -FriendlyName "LocalDevCert"
+
+# Export to PFX (replace <Thumbprint> with your cert's thumbprint)
+$pwd = ConvertTo-SecureString -String "password" -Force -AsPlainText
+Export-PfxCertificate -Cert "cert:\LocalMachine\My\<Thumbprint>" -FilePath "localhost.pfx" -Password $pwd
+
+# Convert to PEM (requires OpenSSL)
+openssl pkcs12 -in localhost.pfx -nocerts -out localhost-key.pem -nodes
+openssl pkcs12 -in localhost.pfx -clcerts -nokeys -out localhost-cert.pem
+```
+
+After generating, place `localhost-cert.pem` and `localhost-key.pem` in the project root.
+
 ## Documentation
 
 This project includes Doxygen annotations. The generated HTML docs use `README.md` as the main page.

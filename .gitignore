@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# Certs
+*.pem
+*.pfx
+
 # Build artifacts
 *.a
 *.lib
