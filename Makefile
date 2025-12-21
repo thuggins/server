@@ -6,7 +6,7 @@ SRCS = src/main.c src/ws.c src/http.c src/worker.c
 OBJS = $(SRCS:.c=.o)
 
 
-all: clean-docs docs $(TARGET)
+all: clean clean-docs docs $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LDFLAGS)

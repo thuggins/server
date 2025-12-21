@@ -55,17 +55,52 @@ unsigned __stdcall client_worker(void* arg) {
     if (strstr(request, "Upgrade: websocket") != NULL ||
         strstr(request, "upgrade: websocket") != NULL) {
         if (websocket_handshake(client, request)) {
-            // Demo protocol: send a welcome then echo back any text frames
-            websocket_send_text(
-                client, "{\"type\":\"welcome\",\"msg\":\"Connected to C WebSocket server\"}");
+            // Send Home HTML page on initial connection
+            websocket_send_text(client, "<h2>Home</h2><p>Welcome to the Home page!</p>");
             char msg[1024];
             int mlen;
             while ((mlen = websocket_read_text(client, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
                 if (mlen == -2)
                     continue; // control frame handled
-                char reply[1200];
-                snprintf(reply, sizeof(reply), "{\"type\":\"echo\",\"msg\":\"%s\"}", msg);
-                websocket_send_text(client, reply);
+
+                // Try to parse as JSON for page requests
+                if (msg[0] == '{') {
+                    char page[32] = {0};
+                    const char* ptype = strstr(msg, "\"type\"");
+                    const char* ppage = strstr(msg, "\"page\"");
+                    if (ptype && strstr(ptype, "page")) {
+                        if (ppage) {
+                            const char* colon = strchr(ppage, ':');
+                            if (colon) {
+                                const char* quote1 = strchr(colon, '"');
+                                if (quote1) {
+                                    const char* quote2 = strchr(quote1 + 1, '"');
+                                    if (quote2 && quote2 - quote1 - 1 < (int)sizeof(page)) {
+                                        strncpy(page, quote1 + 1, quote2 - quote1 - 1);
+                                        page[quote2 - quote1 - 1] = 0;
+                                    }
+                                }
+                            }
+                        }
+                        // Send HTML for the requested page
+                        const char* html = NULL;
+                        if (strcmp(page, "home") == 0) {
+                            html = "<h2>Home</h2><p>Welcome to the Home page!</p>";
+                        } else if (strcmp(page, "about") == 0) {
+                            html = "<h2>About</h2><p>This is a demo WebSocket-driven site. Powered "
+                                   "by C!</p>";
+                        } else if (strcmp(page, "contact") == 0) {
+                            html = "<h2>Contact</h2><p>Contact us at <a "
+                                   "href='mailto:demo@example.com'>demo@example.com</a></p>";
+                        } else {
+                            html = "<h2>Not Found</h2><p>Page not found.</p>";
+                        }
+                        websocket_send_text(client, html);
+                        continue;
+                    }
+                }
+                // Fallback: ignore or send a default page
+                // websocket_send_text(client, "<h2>Unknown request</h2>");
             }
         }
         closesocket(client);
