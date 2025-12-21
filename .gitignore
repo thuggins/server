@@ -13,9 +13,6 @@
 *.a
 *.lib
 
-# Documentation
-docs/
-
 # Dependency files
 *.d
 

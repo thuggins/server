@@ -59,20 +59,6 @@ openssl pkcs12 -in localhost.pfx -clcerts -nokeys -out localhost-cert.pem
 
 After generating, place `localhost-cert.pem` and `localhost-key.pem` in the project root.
 
-## Documentation
-
-This project includes Doxygen annotations. The generated HTML docs use `README.md` as the main page.
-
-Generate docs from the terminal:
-
-```bash
-make docs
-```
-
-Open the documentation at:
-
-- [docs/html/index.html](docs/html/index.html)
-
 ## Requirements
 
 **MSYS2**
