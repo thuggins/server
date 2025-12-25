@@ -7,7 +7,7 @@ BreakBeforeBraces: Attach # Attach, Allman, Stroustrup, Linux, etc.
 AllowShortFunctionsOnASingleLine: Empty
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-SortIncludes: false
+SortIncludes: true
 SpaceBeforeParens: ControlStatements
 PointerAlignment: Left # Or Right, Middle
 SpacesInParentheses: false

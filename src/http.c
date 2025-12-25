@@ -1,52 +1,42 @@
-#include <string.h>
+#include "common.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <winsock2.h>
-#include "common.h"
-#include <openssl/ssl.h>
 #include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <winsock2.h>
-#include "common.h"
-#include <openssl/ssl.h>
+#include <sys/socket.h>
 
-// Send a minimal HTTP response header (SSL)
-static void http_send_header_ssl(SSL* ssl, const char* status_line, const char* content_type,
-                                 size_t len) {
+// Send a minimal HTTP response header
+static void http_send_header(int client, const char* status_line, const char* content_type,
+                             size_t len) {
     char header[COMMON_HEADER_BUF_SIZE];
     int n = snprintf(header, sizeof(header),
                      "%s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n",
                      status_line, content_type, len);
-    SSL_write(ssl, header, n);
+    send(client, header, n, 0);
 }
 
-// Send a 200 OK response with the provided body (SSL)
-void http_send_response_ssl(void* vssl, const char* content_type, const unsigned char* data,
-                            size_t len) {
-    SSL* ssl = (SSL*)vssl;
-    http_send_header_ssl(ssl, "HTTP/1.1 200 OK", content_type, len);
-    SSL_write(ssl, (const char*)data, (int)len);
+// Send a 200 OK response with the provided body
+void http_send_response(int client, const char* content_type, const unsigned char* data,
+                        size_t len) {
+    http_send_header(client, "HTTP/1.1 200 OK", content_type, len);
+    send(client, (const char*)data, (int)len, 0);
 }
 
-// Send a simple 404 Not Found HTML response (SSL)
-void http_send_404_ssl(void* vssl) {
-    SSL* ssl = (SSL*)vssl;
+// Send a simple 404 Not Found HTML response
+void http_send_404(int client) {
     const char* body = "<h1>404 Not Found</h1>";
-    http_send_header_ssl(ssl, "HTTP/1.1 404 Not Found", "text/html", strlen(body));
-    SSL_write(ssl, body, (int)strlen(body));
+    http_send_header(client, "HTTP/1.1 404 Not Found", "text/html", strlen(body));
+    send(client, body, (int)strlen(body), 0);
 }
 
-// Serve a file from ./public by HTTP path (SSL)
-void http_serve_file_ssl(void* vssl, const char* path) {
-    SSL* ssl = (SSL*)vssl;
+// Serve a file from ./public by HTTP path
+void http_serve_file(int client, const char* path) {
     char full[COMMON_MAX_PATH];
     if (strcmp(path, "/") == 0)
         path = "/index.html";
     snprintf(full, sizeof(full), "public%s", path);
     FILE* f = fopen(full, "rb");
     if (!f) {
-        http_send_404_ssl(ssl);
+        http_send_404(client);
         return;
     }
     fseek(f, 0, SEEK_END);
@@ -55,7 +45,7 @@ void http_serve_file_ssl(void* vssl, const char* path) {
     unsigned char* buf = (unsigned char*)malloc(len);
     if (!buf) {
         fclose(f);
-        http_send_404_ssl(ssl);
+        http_send_404(client);
         return;
     }
     fread(buf, 1, len, f);
@@ -70,6 +60,6 @@ void http_serve_file_ssl(void* vssl, const char* path) {
         else if (strcmp(ext, ".css") == 0)
             ct = "text/css";
     }
-    http_send_response_ssl(ssl, ct, buf, (size_t)len);
+    http_send_response(client, ct, buf, (size_t)len);
     free(buf);
 }

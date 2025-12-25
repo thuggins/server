@@ -1,9 +1,9 @@
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "weather.h"
 #include <curl/curl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Helper for libcurl to write response data into a buffer
 static size_t write_to_buffer(void* contents, size_t size, size_t nmemb, void* userp) {

@@ -1,21 +1,19 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <time.h>
-#include <unistd.h>
+#include "worker.h"
+#include "http.h"
 #include "weather.h"
 #include "ws.h"
-#include "http.h"
-#include "worker.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 // Thread proc for a single client connection (HTTP/WebSocket).
-unsigned __stdcall client_worker(void* arg) {
+void* client_worker(void* arg) {
     client_ctx_t* ctx = (client_ctx_t*)arg;
-    SOCKET client = ctx->client;
+    int client = ctx->client;
     struct sockaddr_in clientAddr = ctx->addr;
 
     char clientIP[INET_ADDRSTRLEN];
@@ -23,39 +21,27 @@ unsigned __stdcall client_worker(void* arg) {
         strcpy(clientIP, "unknown");
     }
 
-    if (!ctx || !ctx->ssl_ctx) {
-        fprintf(stderr, "ERROR: ctx or ctx->ssl_ctx is NULL!\n");
-        closesocket(client);
+    if (!ctx) {
+        fprintf(stderr, "ERROR: ctx is NULL!\n");
+        close(client);
         return 0;
     }
 
-    SSL* ssl = SSL_new((SSL_CTX*)ctx->ssl_ctx);
-    if (!ssl) {
-        closesocket(client);
-        return 0;
-    }
-    SSL_set_fd(ssl, (int)client);
-    if (SSL_accept(ssl) <= 0) {
-        SSL_free(ssl);
-        closesocket(client);
-        return 0;
-    }
     char request[2048] = {0};
-    int recvBytes = SSL_read(ssl, request, sizeof(request) - 1);
+    int recvBytes = recv(client, request, sizeof(request) - 1, 0);
     if (recvBytes <= 0) {
-        SSL_free(ssl);
-        closesocket(client);
+        close(client);
         return 0;
     }
 
     // WebSocket upgrade vs static file
     if (strstr(request, "Upgrade: websocket") != NULL ||
         strstr(request, "upgrade: websocket") != NULL) {
-        if (websocket_handshake_ssl(ssl, request)) {
+        if (websocket_handshake(client, request)) {
             char msg[1024];
             int mlen;
             int weather_in_progress = 0;
-            while ((mlen = websocket_read_text_ssl(ssl, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
+            while ((mlen = websocket_read_text(client, msg, sizeof(msg) - 1)) > 0 || mlen == -2) {
                 if (mlen == -2)
                     continue;
                 if (strncmp(msg, "{\"type\":\"weather_request\"", 25) == 0 &&
@@ -82,7 +68,7 @@ unsigned __stdcall client_worker(void* arg) {
                                  "{\"type\":\"weather_row\",\"city\":\"%s\",\"state\":\"%s\","
                                  "\"temp\":\"%s\"}",
                                  capitals[i].city, capitals[i].state, tempval);
-                        int wsret = websocket_send_text_ssl(ssl, msg);
+                        int wsret = websocket_send_text(client, msg);
                         if (wsret < 0)
                             break;
                     }
@@ -90,16 +76,14 @@ unsigned __stdcall client_worker(void* arg) {
                 }
             }
         }
-        SSL_free(ssl);
-        closesocket(client);
+        close(client);
     } else {
         // Serve static file based on the requested path
         char method[8] = {0};
         char path[256] = {0};
         sscanf(request, "%7s %255s", method, path);
-        http_serve_file_ssl(ssl, path);
-        SSL_free(ssl);
-        closesocket(client);
+        http_serve_file(client, path);
+        close(client);
     }
     free(ctx);
     return 0;

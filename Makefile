@@ -1,11 +1,13 @@
+
+
 CC = gcc
-CFLAGS = -g -Iinclude
-LDFLAGS = -lws2_32 -ladvapi32 -lcurl -lssl -lcrypto
-TARGET = server.exe
-SRCS = src/main.c src/ws.c src/http.c src/worker.c src/ssl_helper.c src/weather.c src/ws_util.c
+CFLAGS = -g -Iinclude -fPIC -fPIE
+LDFLAGS = -lcurl -lpthread -fPIE -pie
+TARGET = server
+SRCS = src/main.c src/ws.c src/http.c src/worker.c src/weather.c src/ws_util.c src/sha1.c
 OBJS = $(SRCS:.c=.o)
 
-all: clean $(TARGET)
+all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LDFLAGS)

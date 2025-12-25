@@ -1,8 +1,8 @@
 #include "ws_util.h"
-#include <string.h>
+#include "sha1.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <wincrypt.h>
+#include <string.h>
 
 // Encode raw bytes to Base64 for header values.
 int base64_encode(const unsigned char* in, int in_len, char* out, int out_size) {
@@ -27,29 +27,9 @@ int base64_encode(const unsigned char* in, int in_len, char* out, int out_size) 
     return o;
 }
 
-// Compute SHA-1 digest using Windows CryptoAPI.
-int sha1_hash(const unsigned char* data, DWORD len, unsigned char* out20) {
-    HCRYPTPROV hProv = 0;
-    HCRYPTHASH hHash = 0;
-    DWORD hashLen = 20;
-    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
-        return 0;
-    if (!CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
-        CryptReleaseContext(hProv, 0);
-        return 0;
-    }
-    if (!CryptHashData(hHash, data, len, 0)) {
-        CryptDestroyHash(hHash);
-        CryptReleaseContext(hProv, 0);
-        return 0;
-    }
-    if (!CryptGetHashParam(hHash, HP_HASHVAL, out20, &hashLen, 0)) {
-        CryptDestroyHash(hHash);
-        CryptReleaseContext(hProv, 0);
-        return 0;
-    }
-    CryptDestroyHash(hHash);
-    CryptReleaseContext(hProv, 0);
+// Compute SHA-1 digest using portable implementation.
+int sha1_hash(const unsigned char* data, uint32_t len, unsigned char* out20) {
+    sha1(data, len, out20);
     return 1;
 }
 
